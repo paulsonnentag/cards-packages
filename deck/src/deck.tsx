@@ -1,16 +1,14 @@
 import { createMemo, For, Show, type Component } from "solid-js";
 import {
   Describe,
-  MyPointer,
-  rootOf,
+  Pointers,
   state,
   State,
   type Behavior,
   type Node,
 } from "@cards/core";
-import { elementOf } from "@cards/core/dom";
 import { Child } from "@cards/core/render";
-import { Drop, Place, tags as shapes, type Point } from "@cards/shapes";
+import { Drop, type Point } from "@cards/shapes";
 import type { Pointer } from "@cards/tools";
 import type { Deck } from "./index.js";
 
@@ -19,31 +17,26 @@ type Dropping = { node: Node; index: number }; // a card held over the deck, and
 const ROW = 28; // a row and the gap below it; rows are placed by hand so they can slide
 
 // Holds cards: listed on the left, the selected one shown on the right. Cards on a deck are dealt like loose ones.
-export default (({ url, parent, request, on }) => {
+export default (({ url, request, on }) => {
   const deck = () => request(State).read<Deck>();
   const cards = () => deck().children ?? [];
   const selected = () =>
     cards().find((c) => c.url === deck().selected?.url) ?? cards()[0];
   const select = (card: Node) => request(State).put("selected", card.url);
+  let rows: HTMLElement | undefined;
 
-  // what my pointer holds over this deck, if anything
+  // what someone's pointer holds over this deck, if anything
   const dropping = createMemo((): Dropping | undefined => {
-    const pointer = request(MyPointer);
-    if (!pointer) return;
-    const { holding, grip, position } = state<Pointer>(pointer);
-    if (!holding || grip?.over?.url !== url || !position) return;
-    // the position is in the root surface's pixels
-    const surface = elementOf(rootOf(parent!).url)?.getBoundingClientRect();
-    if (!surface) return;
-    const client = {
-      x: position.x + surface.left,
-      y: position.y + surface.top,
-    };
-    return { node: holding, index: slotAt(client) };
+    for (const pointer of request(Pointers) ?? []) {
+      const { holding, grip, client } = state<Pointer>(pointer);
+      const at = client?.();
+      if (holding && grip?.over?.url === url && at)
+        return { node: holding, index: slotAt(at) };
+    }
+    return undefined;
   });
 
   request(State).put({
-    [`@tags/${shapes.container}`]: true,
     takes: "card",
     view: () => (
       <DeckView
@@ -51,19 +44,23 @@ export default (({ url, parent, request, on }) => {
         selected={selected()}
         dropping={dropping()}
         select={select}
+        rows={(el) => (rows = el)}
       />
     ),
   });
 
   on(Drop, ({ node, client, pointer = client }) => {
-    request(Place, { node, fields: {}, at: slotAt(pointer) });
+    const at = slotAt(pointer);
+    request(State).change((d: Deck) => {
+      if (!d.children) d.children = [];
+      d.children.splice(Math.min(at, d.children.length), 0, node);
+    });
     select(node);
     return url;
   });
 
   // the slot nearest to the pointer
   function slotAt(pointer: Point): number {
-    const rows = elementOf(url)?.querySelector(".deck-rows") as HTMLElement;
     if (!rows) return cards().length;
     const rect = rows.getBoundingClientRect();
     const scale = rows.offsetWidth ? rect.width / rows.offsetWidth : 1;
@@ -77,6 +74,7 @@ const DeckView: Component<{
   selected?: Node;
   dropping?: Dropping;
   select(card: Node): void;
+  rows(el: HTMLElement): void;
 }> = (props) => {
   const count = () => props.cards.length + (props.dropping ? 1 : 0);
   // the rows make room at the slot a card would land in
@@ -88,7 +86,11 @@ const DeckView: Component<{
   return (
     <div class="paper deck" classList={{ droppable: Boolean(props.dropping) }}>
       <div class="deck-list">
-        <div class="deck-rows" style={{ height: `${count() * ROW}px` }}>
+        <div
+          class="deck-rows"
+          ref={props.rows}
+          style={{ height: `${count() * ROW}px` }}
+        >
           <For each={props.cards}>
             {(card) => (
               <div

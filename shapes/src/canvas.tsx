@@ -1,15 +1,14 @@
 import { For, type Component, type JSX } from "solid-js";
 import { Pointers, state, State, type Behavior, type Node } from "@cards/core";
-import { elementOf } from "@cards/core/dom";
 import { Child } from "@cards/core/render";
-import { Drop, Place, tags, type Canvas, type Shape } from "./index.js";
+import { Drop, tags, type Canvas, type Shape } from "./index.js";
 
 // A surface in plain pixels: x and y are offsets from its top-left, scale is the size on screen.
 export default (({ url, request, on }) => {
   const canvas = () => request(State).read<Canvas>();
+  let frame: HTMLElement | undefined;
 
   request(State).put({
-    [`@tags/${tags.container}`]: true,
     [`@tags/${tags.surface}`]: true,
     takes: tags.shape,
     view: () => (
@@ -17,15 +16,22 @@ export default (({ url, request, on }) => {
         url={url}
         children={canvas().children ?? []}
         pointers={request(Pointers) ?? []}
+        frame={(el) => (frame = el)}
       />
     ),
   });
 
   on(Drop, ({ node, client, scale }) => {
-    const origin = elementOf(url)!.getBoundingClientRect();
-    request(Place, {
-      node,
-      fields: { x: client.x - origin.left, y: client.y - origin.top, scale },
+    const origin = frame!.getBoundingClientRect();
+    request(State).change((d: Canvas) => {
+      if (!d.children) d.children = [];
+      d.children.push(node);
+    });
+    const child = canvas().children.find((c) => c.url === node.url)!;
+    child.request(State).change((d: Shape) => {
+      d.x = client.x - origin.left;
+      d.y = client.y - origin.top;
+      d.scale = scale;
     });
     return url;
   });
@@ -36,8 +42,9 @@ const CanvasView: Component<{
   url: Node["url"];
   children: Node[];
   pointers: Node[];
+  frame(el: HTMLElement): void;
 }> = (props) => (
-  <div class="canvas" data-node={props.url} data-pan>
+  <div class="canvas" data-node={props.url} ref={props.frame}>
     <For each={props.children}>
       {(child) => <Child node={child} style={placement(child)} />}
     </For>

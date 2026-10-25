@@ -38,7 +38,7 @@ const CardView: Component<{ card: Card; descriptor?: CardDescriptor }> = (
     <div class="card-body">
       <Show when={props.card.example}>
         {(example) => (
-          <div class="example" data-node={example().url} data-inert>
+          <div class="example" data-node={example().url}>
             <Preview example={example()} />
           </div>
         )}

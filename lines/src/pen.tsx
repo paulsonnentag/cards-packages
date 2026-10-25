@@ -8,7 +8,6 @@ import {
   type Behavior,
   type Node,
 } from "@cards/core";
-import { hit, isControl } from "@cards/core/dom";
 import { Drop, tags as shapes, type Point, type Shape } from "@cards/shapes";
 import {
   PointerDown,
@@ -16,13 +15,20 @@ import {
   PointerUp,
   tags as tools,
   Toggle,
-  type PointerInput,
   type Tool,
 } from "@cards/tools";
 import { tags, type Line } from "./index.js";
 
-type Pen = Shape & Tool & { stroke?: Node; from?: Point }; // puts: the line being drawn and where it started on screen
+type Pen = Shape &
+  Tool & {
+    // puts
+    press?: { from: Point; on: Node }; // where the pen went down on screen, and the node under it
+    stroke?: Node; // the line being drawn
+  };
 
+const THRESHOLD = 2;
+
+// Draws only once the pen moves, so a click still reaches what was clicked, buttons included
 export default (({ url, parent, request }) => {
   request(State).put(`@tags/${tools.tool}`, true);
   const self = () => request(State).read<Pen>();
@@ -33,18 +39,24 @@ export default (({ url, parent, request }) => {
     const p = pointer();
     if (!p) return;
     p.on(PointerDown, (e, next) => {
-      if (e.claimedBy || !selected() || isControl(e.element)) return next();
-      start(e);
-      return url;
+      if (!e.claimedBy && selected())
+        request(State).put("press", { from: e.client, on: e.target });
+      return next();
     });
-    p.on(PointerMove, (e, next) =>
-      e.claimedBy === url ? extend(e.client) : next(),
-    );
-    p.on(PointerUp, (e, next) =>
-      e.claimedBy === url
-        ? request(State).put({ stroke: undefined, from: undefined })
-        : next(),
-    );
+    p.on(PointerMove, (e, next) => {
+      const press = self().press;
+      if (e.claimedBy === url) extend(e.client);
+      else if (!e.claimedBy && press && moved(press.from, e.client)) {
+        start();
+        extend(e.client);
+        return url;
+      } else return next();
+    });
+    p.on(PointerUp, (e, next) => {
+      if (self().press)
+        request(State).put({ press: undefined, stroke: undefined });
+      if (e.claimedBy !== url) next();
+    });
   });
 
   request(State).put("view", () => (
@@ -57,10 +69,10 @@ export default (({ url, parent, request }) => {
     </button>
   ));
 
-  // the surface under the pointer decides where the line lives; points are screen pixels from the start
-  function start(e: PointerInput) {
-    const root = rootOf(parent!);
-    const surface = surfaceOf(hit(root, e.element)) ?? root;
+  // the surface the pen went down on decides where the line lives; points are screen pixels from there
+  function start() {
+    const { from, on } = self().press!;
+    const surface = surfaceOf(on) ?? rootOf(parent!);
     const line = request(NewNode, {
       "@tags": { [shapes.shape]: true, [tags.line]: true },
       x: 0,
@@ -69,18 +81,22 @@ export default (({ url, parent, request }) => {
       color: "#1d1d1f",
       width: 2,
     } satisfies Line);
-    surface.request(Drop, { node: line, client: e.client, scale: 1 });
-    request(State).put({ stroke: line.url, from: e.client });
+    surface.request(Drop, { node: line, client: from, scale: 1 });
+    request(State).put("stroke", line.url);
   }
 
   function extend(client: Point) {
-    const { stroke, from } = self();
-    if (!stroke || !from) return;
+    const { stroke, press } = self();
+    if (!stroke || !press) return;
     stroke.request(State).change((d: Line) => {
-      d.points.push({ x: client.x - from.x, y: client.y - from.y });
+      d.points.push({ x: client.x - press.from.x, y: client.y - press.from.y });
     });
   }
 }) satisfies Behavior;
+
+function moved(from: Point, to: Point) {
+  return Math.hypot(to.x - from.x, to.y - from.y) >= THRESHOLD;
+}
 
 // the nearest surface, from `node` up
 function surfaceOf(node: Node): Node | undefined {

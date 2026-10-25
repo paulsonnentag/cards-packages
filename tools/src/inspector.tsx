@@ -2,6 +2,7 @@ import {
   createEffect,
   createMemo,
   For,
+  onCleanup,
   Show,
   untrack,
   type Component,
@@ -10,13 +11,13 @@ import {
   Describe,
   MyPointer,
   Node,
+  nodeIn,
   rootOf,
   state,
   State,
   type Behavior,
   type Tagged,
 } from "@cards/core";
-import { hit, isControl } from "@cards/core/dom";
 import type { Shape } from "@cards/shapes";
 import {
   PointerDown,
@@ -29,7 +30,9 @@ import {
 
 type Inspector = Shape & Tool & { target?: Node }; // target is a put
 
-export default (({ url, parent, request }) => {
+// While selected it claims every press, so it can pick buttons too; picking hands the pointer back to the
+// default tool
+export default (({ url, parent, scope, request }) => {
   request(State).put(`@tags/${tags.tool}`, true);
   const self = () => request(State).read<Inspector>();
   const pointer = createMemo(() => request(MyPointer));
@@ -39,13 +42,20 @@ export default (({ url, parent, request }) => {
     const p = pointer();
     if (!p) return;
     p.on(PointerDown, (e, next) => {
-      if (e.claimedBy || !self().selected || isControl(e.element))
-        return next();
-      pick(hit(rootOf(parent!), e.element));
+      if (e.claimedBy !== url) return next();
+      pick(nodeIn(scope, e.target));
+      request(Toggle);
       return url;
     });
     p.on(PointerMove, (e, next) => (e.claimedBy === url ? undefined : next()));
     p.on(PointerUp, (e, next) => (e.claimedBy === url ? undefined : next()));
+  });
+
+  createEffect(() => {
+    const hand = pointer()?.request(State);
+    if (!hand || !self().selected) return;
+    hand.put("claimedBy", url);
+    onCleanup(() => hand.put("claimedBy", undefined));
   });
 
   request(State).put("view", () => (
