@@ -1,0 +1,11 @@
+{
+  "presets": [
+    [
+      "babel-preset-solid",
+      {
+        "generate": "dom"
+      }
+    ],
+    "@babel/preset-typescript"
+  ]
+}

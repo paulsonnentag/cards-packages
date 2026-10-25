@@ -1,0 +1,7 @@
+{
+  "version": 5,
+  "rootUrl": "automerge:3YdCrDSma5HUfHh4dzzjkbTqueBL",
+  "backend": "subduction",
+  "shape": "vfs",
+  "artifactDirectories": []
+}

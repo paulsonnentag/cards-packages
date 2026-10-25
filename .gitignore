@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*/importmap.json
+# a package's document url stays with it; pushwork's local copy doesn't
+*/.pushwork/*
+!*/.pushwork/config.json
