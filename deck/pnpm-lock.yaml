@@ -170,10 +170,10 @@ importers:
     dependencies:
       '@cards/shapes':
         specifier: automerge:atho8JGpgB4mZnR6pP4LYffh1XT
-        version: '@cards/shapes@0.1.0+f66b0859d265(@cards/core@..+cards-core+core)(solid-js@1.9.17)'
+        version: '@cards/shapes@0.1.0+58b1b9e352ea(@cards/core@..+cards-core+core)(solid-js@1.9.17)'
       '@cards/tools':
         specifier: automerge:qFzm3sVaVsAqZ3ZjdhCSNzkQoJK
-        version: '@cards/tools@0.1.0+09da14b8b3a2(@cards/core@..+cards-core+core)(solid-js@1.9.17)'
+        version: '@cards/tools@0.1.0+ea2bcbf50894(@cards/core@..+cards-core+core)(solid-js@1.9.17)'
     devDependencies:
       '@babel/cli':
         specifier: ^7.28.0
@@ -339,14 +339,14 @@ packages:
     resolution: {integrity: sha512-WCsemW40Cpc6gouC1SrY6PBaZ+oLRlEVY9XBvZBI7il/HyUrb2nJ505wE1MHEFyDZNnrWDEuy4jL50WVHfTTSQ==}
     engines: {node: '>=6.9.0'}
 
-  '@cards/shapes@0.1.0+f66b0859d265':
-    resolution: {heads: [26mnv8PJD56gqKbaFrySpudye44p47eLpkhuksGahjzXHxiao9], type: custom:automerge, url: automerge:atho8JGpgB4mZnR6pP4LYffh1XT}
+  '@cards/shapes@0.1.0+58b1b9e352ea':
+    resolution: {heads: [URJWJtAyfFndjvLAHJcx7gBmTjHpJJc64G9yRMTD792KwsoQU], type: custom:automerge, url: automerge:atho8JGpgB4mZnR6pP4LYffh1XT}
     peerDependencies:
       '@cards/core': '*'
       solid-js: '*'
 
-  '@cards/tools@0.1.0+09da14b8b3a2':
-    resolution: {heads: [24HVovuTNzR3aQG8kj2SZuuEB9d8TanEaTWPGwR2yDUg8PJMa], type: custom:automerge, url: automerge:qFzm3sVaVsAqZ3ZjdhCSNzkQoJK}
+  '@cards/tools@0.1.0+ea2bcbf50894':
+    resolution: {heads: [TvQEX4aYrVAU6yrvfgKP6W3CpHnqpcbEY3yLAujF5sTga3h6p], type: custom:automerge, url: automerge:qFzm3sVaVsAqZ3ZjdhCSNzkQoJK}
     peerDependencies:
       '@cards/core': '*'
       solid-js: '*'
@@ -936,15 +936,15 @@ snapshots:
       '@babel/helper-string-parser': 7.29.11
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@cards/shapes@0.1.0+f66b0859d265(@cards/core@..+cards-core+core)(solid-js@1.9.17)':
+  '@cards/shapes@0.1.0+58b1b9e352ea(@cards/core@..+cards-core+core)(solid-js@1.9.17)':
     dependencies:
       '@cards/core': link:../../cards-core/core
       solid-js: 1.9.17
 
-  '@cards/tools@0.1.0+09da14b8b3a2(@cards/core@..+cards-core+core)(solid-js@1.9.17)':
+  '@cards/tools@0.1.0+ea2bcbf50894(@cards/core@..+cards-core+core)(solid-js@1.9.17)':
     dependencies:
       '@cards/core': link:../../cards-core/core
-      '@cards/shapes': '@cards/shapes@0.1.0+f66b0859d265(@cards/core@..+cards-core+core)(solid-js@1.9.17)'
+      '@cards/shapes': '@cards/shapes@0.1.0+58b1b9e352ea(@cards/core@..+cards-core+core)(solid-js@1.9.17)'
       solid-js: 1.9.17
 
   '@jridgewell/gen-mapping@0.3.13':

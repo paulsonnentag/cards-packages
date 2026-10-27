@@ -1,6 +1,7 @@
 import { createMemo, For, Show, type Component } from "solid-js";
 import {
   Describe,
+  hasTag,
   Pointers,
   state,
   State,
@@ -8,7 +9,7 @@ import {
   type Node,
 } from "@cards/core";
 import { Child } from "@cards/core/render";
-import { Drop, type Point } from "@cards/shapes";
+import { Drop, ordered, orderAt, type Point, type Shape } from "@cards/shapes";
 import type { Pointer } from "@cards/tools";
 import type { Deck } from "./index.js";
 
@@ -19,7 +20,7 @@ const ROW = 28; // a row and the gap below it; rows are placed by hand so they c
 // Holds cards: listed on the left, the selected one shown on the right. Cards on a deck are dealt like loose ones.
 export default (({ url, request, on }) => {
   const deck = () => request(State).read<Deck>();
-  const cards = () => deck().children ?? [];
+  const cards = () => ordered(deck().children);
   const selected = () =>
     cards().find((c) => c.url === deck().selected?.url) ?? cards()[0];
   const select = (card: Node) => request(State).put("selected", card.url);
@@ -37,7 +38,7 @@ export default (({ url, request, on }) => {
   });
 
   request(State).put({
-    takes: "card",
+    "takes/card": true,
     view: () => (
       <DeckView
         cards={cards()}
@@ -49,12 +50,18 @@ export default (({ url, request, on }) => {
     ),
   });
 
-  on(Drop, ({ node, client, pointer = client }) => {
-    const at = slotAt(pointer);
+  on(Drop, ({ node, client, pointer = client }, next) => {
+    if (!hasTag(node, "card")) return next();
+    const order = orderAt(cards(), slotAt(pointer));
     request(State).change((d: Deck) => {
-      if (!d.children) d.children = [];
-      d.children.splice(Math.min(at, d.children.length), 0, node);
+      if (!d.children) d.children = {};
+      d.children[node.url] = node;
     });
+    deck()
+      .children![node.url].request(State)
+      .change((d: Shape) => {
+        d.order = order;
+      });
     select(node);
     return url;
   });

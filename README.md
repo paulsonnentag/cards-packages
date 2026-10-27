@@ -9,6 +9,9 @@ The card packages for [Cards](../cards-core). Each folder is a package on its ow
 | `lines`  | `shapes`, `tools`                |
 | `deck`   | `shapes`, `tools`                |
 | `map`    | `shapes`, `tools`, `maplibre-gl` |
+| `sheep`  | `shapes`                         |
+| `beret`  | `shapes`                         |
+| `france` | `shapes`, `map`, `beret`         |
 
 ## Setup
 
@@ -53,7 +56,7 @@ pnpm push      # build, then pushwork sync
 
 `pnpm build` transpiles `src/` to `dist/` with Babel (TypeScript and Solid's JSX, file by file, no bundling), writes `dist/*.d.ts` with `tsc`, and generates `importmap.json` from the lockfile with `cards-importmap`. Open pages pick up the pushed version without a reload.
 
-A package that depends on another one gets the other package's newest version on `pnpm install`. Push dependencies first: `shapes`, then `tools`, then the rest.
+A package that depends on another one gets the other package's newest version on `pnpm install`. Push dependencies first: `shapes`, then `tools`, then the rest, with `beret` and `map` before `france`.
 
 ## A new package
 

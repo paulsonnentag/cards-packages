@@ -2,12 +2,14 @@ import { Map as MapLibre } from "maplibre-gl";
 import {
   createEffect,
   createMemo,
+  createSignal,
   For,
   onCleanup,
   onMount,
   type Component,
 } from "solid-js";
 import {
+  hasTag,
   Lookup,
   Pointers,
   state,
@@ -16,7 +18,15 @@ import {
   type Node,
 } from "@cards/core";
 import { Child } from "@cards/core/render";
-import { Drop, tags as shapes, type Point, type Shape } from "@cards/shapes";
+import {
+  Drop,
+  Move,
+  ordered,
+  orderAt,
+  tags as shapes,
+  type Point,
+  type Shape,
+} from "@cards/shapes";
 import { tags as tools, type Pointer, type Tool } from "@cards/tools";
 import type { Camera, MapShape } from "./index.js";
 
@@ -46,7 +56,7 @@ export default (({ url, request, on }) => {
   adoptStyles();
   request(State).put({
     [`@tags/${shapes.surface}`]: true,
-    takes: shapes.shape,
+    [`takes/${shapes.shape}`]: true,
     view: () => (
       <MapView
         map={map()}
@@ -59,17 +69,40 @@ export default (({ url, request, on }) => {
     ),
   });
 
-  on(Drop, ({ node, client, scale }) => {
+  // a drop lands on top
+  on(Drop, ({ node, client, scale }, next) => {
+    if (!hasTag(node, shapes.shape)) return next();
     const [lng, lat] = fromScreen(toLocal(client), map().camera, size());
+    const children = ordered(map().children);
+    const order = orderAt(children, children.length);
     request(State).change((d: MapShape) => {
-      if (!d.children) d.children = [];
-      d.children.push(node);
+      if (!d.children) d.children = {};
+      d.children[node.url] = node;
     });
-    const child = map().children.find((c) => c.url === node.url)!;
+    map()
+      .children![node.url].request(State)
+      .change((d: Shape) => {
+        d.x = lng;
+        d.y = lat;
+        d.scale = scale / 2 ** map().camera.zoom;
+        d.order = order;
+      });
+    return url;
+  });
+
+  // `by` is in the node's own pixels, so a node walks as far across the screen at any zoom
+  on(Move, ({ node, by }, next) => {
+    const child = map().children?.[node.url];
+    if (!child) return next();
+    const camera = map().camera;
     child.request(State).change((d: Shape) => {
-      d.x = lng;
-      d.y = lat;
-      d.scale = scale / 2 ** map().camera.zoom;
+      const k = (d.scale ?? 1) * 2 ** camera.zoom;
+      const at = toScreen([d.x, d.y], camera, size());
+      [d.x, d.y] = fromScreen(
+        { x: at.x + by.x * k, y: at.y + by.y * k },
+        camera,
+        size(),
+      );
     });
     return url;
   });
@@ -129,6 +162,16 @@ const MapView: Component<{
   let container!: HTMLDivElement;
   let frame!: HTMLDivElement;
   let last: Point | undefined;
+  // while the camera moves, children follow it at once rather than gliding behind
+  const [still, setStill] = createSignal(true);
+  createEffect(() => {
+    props.map.camera;
+    setStill(false);
+    const timer = setTimeout(() => setStill(true), 200);
+    onCleanup(() => clearTimeout(timer));
+  });
+  const place = (child: Node) =>
+    placement(child, props.map.camera, size(), still());
   const size = () => ({ x: props.map.width, y: props.map.height });
 
   onMount(() => {
@@ -190,13 +233,8 @@ const MapView: Component<{
       >
         <div class="map-canvas" ref={container} />
         <div class="map-children">
-          <For each={props.map.children ?? []}>
-            {(child) => (
-              <Child
-                node={child}
-                style={placement(child, props.map.camera, size())}
-              />
-            )}
+          <For each={ordered(props.map.children)}>
+            {(child) => <Child node={child} style={place(child)} />}
           </For>
         </div>
       </div>
@@ -219,13 +257,17 @@ function adoptStyles() {
   });
 }
 
-function placement(child: Node, camera: Camera, size: Point) {
+function placement(child: Node, camera: Camera, size: Point, glide: boolean) {
   const s = state<Shape>(child);
   const at = toScreen([s.x ?? 0, s.y ?? 0], camera, size);
   return {
     left: `${at.x}px`,
     top: `${at.y}px`,
     transform: `scale(${(s.scale ?? 1) * 2 ** camera.zoom})`,
+    transition:
+      glide && s.glide
+        ? `left ${s.glide}ms linear, top ${s.glide}ms linear`
+        : undefined,
   };
 }
 

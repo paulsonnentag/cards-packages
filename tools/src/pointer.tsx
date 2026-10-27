@@ -240,14 +240,21 @@ const PointerView: Component<{
                 );
               }}
             </Show>
-            <div
-              class="cursor"
-              classList={{ remote: !props.mine }}
-              style={{
-                left: `${at(position()).x}px`,
-                top: `${at(position()).y}px`,
-              }}
-            />
+            {/* yours is the system cursor; everyone else's is an arrow with its tip on their position */}
+            <Show when={!props.mine}>
+              <svg
+                class="cursor remote"
+                viewBox="0 0 16 20"
+                width="16"
+                height="20"
+                style={{
+                  left: `${at(position()).x}px`,
+                  top: `${at(position()).y}px`,
+                }}
+              >
+                <path d="M1 1 L1 16 L5 12 L8 19 L11 17.5 L8 11 L14 11 Z" />
+              </svg>
+            </Show>
           </>
         )}
       </Show>

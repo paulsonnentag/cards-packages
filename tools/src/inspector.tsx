@@ -12,6 +12,7 @@ import {
   MyPointer,
   Node,
   nodeIn,
+  nodesIn,
   rootOf,
   state,
   State,
@@ -204,10 +205,8 @@ const Value: Component<{ value: unknown; pick(node: Node): void }> = (
   props,
 ) => {
   const nodes = () => {
-    const v = props.value;
-    if (v instanceof Node) return [v];
-    if (Array.isArray(v) && v.length > 0 && v.every((x) => x instanceof Node))
-      return v as Node[];
+    const found = nodesIn(props.value);
+    return found.length > 0 ? found : undefined;
   };
   return (
     <span class="value">
@@ -245,21 +244,14 @@ const Crosshair = () => (
 
 type Entry = { label: string; node: Node };
 
-// nodes referenced from a node's state, labelled by where they sit
+// the nodes childNodes finds, labelled by the field they sit in
 function childEntries(node: Node): Map<string, Entry> {
   const out = new Map<string, Entry>();
   for (const [key, value] of Object.entries(
     state<Record<string, unknown>>(node),
-  )) {
-    if (value instanceof Node)
-      out.set(`${key}|${value.url}`, { label: key, node: value });
-    else if (Array.isArray(value)) {
-      value.forEach((v, i) => {
-        if (v instanceof Node)
-          out.set(`${key}[${i}]|${v.url}`, { label: `${key}[${i}]`, node: v });
-      });
-    }
-  }
+  ))
+    for (const child of nodesIn(value))
+      out.set(`${key}|${child.url}`, { label: key, node: child });
   return out;
 }
 

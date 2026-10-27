@@ -35,8 +35,8 @@ type Press = {
 type Select = Shape & Tool & { press?: Press };
 
 // The default tool: drag anything to move it between containers. It claims a press only once it becomes a drag,
-// so a click still reaches what was clicked. A template (a card's example) stays where it is; a copy of it is
-// what gets dragged.
+// so a click still reaches what was clicked. A template (a card's example or tag) or a computed node (a beret) stays
+// where it is; a stored copy of it is what gets dragged.
 export default (({ url, parent, scope, request }) => {
   request(State).put(`@tags/${tags.tool}`, true);
   const self = () => request(State).read<Select>();
@@ -92,18 +92,19 @@ export default (({ url, parent, scope, request }) => {
     return true;
   }
 
-  // takes the pressed node out of its container and puts it in the pointer's hand. A template stays where it is:
-  // a full-size copy is what the pointer takes
+  // takes the pressed node out of its container and puts it in the pointer's hand. A template stays where it is
+  // and the pointer takes a full-size copy; a computed node isn't anyone's to take, so it's copied as it is shown
   function lift(p: Press) {
     const template = hasTag(p.target, tags.template);
+    const copy = template || !p.target.request(State).persisted;
     const lifted: Press = {
       ...p,
-      target: template ? p.target.request(State).clone() : p.target,
+      target: copy ? p.target.request(State).clone() : p.target,
       scale: template ? 1 : p.scale,
       lifted: true,
     };
     batch(() => {
-      if (!template) takeOut(p.target);
+      if (!copy) takeOut(p.target);
       hand().put({ holding: lifted.target.url, grip: grip(lifted) });
       request(State).put("press", lifted);
     });
@@ -139,22 +140,19 @@ function grip(p: Press, over?: Node): Record<keyof Grip, unknown> {
   return { grab: p.grab, scale: p.scale, over: over?.url };
 }
 
-// the nearest container, from `node` up, whose `takes` the held node carries
+// the nearest node, from `node` up, that takes one of the held node's tags
 function dropTarget(node: Node, held: Node): Node | undefined {
   for (let n: Node | undefined = node; n; n = n.parent) {
-    const takes = state<Partial<Container>>(n).takes;
-    if (takes !== undefined && hasTag(held, takes)) return n;
+    const takes = state<Partial<Container>>(n).takes ?? {};
+    if (Object.keys(takes).some((tag) => hasTag(held, tag))) return n;
   }
   return undefined;
 }
 
 // a container adds to its own children on Drop; this is the one place a node leaves one
 function takeOut(node: Node) {
-  node.parent?.request(State).change((d: Partial<Container>) => {
-    const i = (d.children ?? []).findIndex(
-      (c) => (c as unknown as string) === node.url,
-    );
-    if (i >= 0) d.children!.splice(i, 1);
+  node.parent?.request(State).change((d: Container) => {
+    delete d.children?.[node.url];
   });
 }
 

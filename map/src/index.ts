@@ -1,6 +1,7 @@
 import { card, NewNode, packageUrl, tag } from "@cards/core";
 import {
   Drop,
+  Move,
   tags as shapes,
   type Container,
   type Shape,
@@ -29,7 +30,7 @@ export const cards = [
     description:
       "A surface on a map. Things drawn or dropped onto it stick to their place; drag its background with the select tool to pan.",
     matches: tags.map,
-    accepts: [Drop],
+    accepts: [Drop, Move],
     behavior: () => import("./map.js"),
     example: ({ request }) =>
       request(NewNode, {
@@ -39,7 +40,7 @@ export const cards = [
         width: 300,
         height: 200,
         camera: BERLIN,
-        children: [],
+        children: {},
       } satisfies MapShape),
   }),
 ];

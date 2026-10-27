@@ -1,0 +1,31 @@
+{
+  "name": "@cards/sheep",
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "babel src -d dist -x .ts,.tsx --copy-files --delete-dir-on-start && tsc && cards-importmap",
+    "push": "pnpm build && pushwork sync"
+  },
+  "dependencies": {
+    "@cards/shapes": "automerge:atho8JGpgB4mZnR6pP4LYffh1XT"
+  },
+  "peerDependencies": {
+    "@cards/core": "*",
+    "solid-js": "*"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.28.0",
+    "@babel/core": "^7.28.0",
+    "@babel/preset-typescript": "^7.27.0",
+    "@cards/core": "link:../../cards-core/core",
+    "babel-preset-solid": "^1.9.16",
+    "solid-js": "^1.9.17",
+    "typescript": "^7.0.2"
+  }
+}

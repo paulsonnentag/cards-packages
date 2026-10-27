@@ -7,7 +7,7 @@ import {
   type Node,
   type Tagged,
 } from "@cards/core";
-import { tags as shapes, type Point, type Shape } from "@cards/shapes";
+import { Drop, tags as shapes, type Point, type Shape } from "@cards/shapes";
 
 export const url = packageUrl(import.meta.url);
 
@@ -19,7 +19,10 @@ export const tags = {
   select: tag(url, "select"),
   inspector: tag(url, "inspector"),
   template: tag(url, "template"), // dragged out as a copy
+  token: tag(url, "token"), // a tag you can hold: dropped on a shape, the shape gets it
 };
+
+export type Token = Tagged & { tag: string };
 
 export type Pointer = Shape & {
   // puts
@@ -74,6 +77,26 @@ export const cards = [
     matches: "card",
     accepts: [],
     behavior: () => import("./card.js"),
+  }),
+  card({
+    id: "token",
+    title: "Tag",
+    description:
+      "A tag you can hold. Every card shows the tag it's dealt to; drag it onto anything to give it that tag.",
+    matches: tags.token,
+    accepts: [],
+    behavior: () => import("./token.js"),
+  }),
+  card({
+    id: "shape",
+    title: "Shape",
+    description:
+      "Anything that can be placed. Drop a tag on it and it gets that tag; until a card draws it, it's a question mark.",
+    matches: shapes.shape,
+    accepts: [Drop],
+    behavior: () => import("./shape.js"),
+    example: ({ request }) =>
+      request(NewNode, { "@tags": { [shapes.shape]: true }, x: 0, y: 0 }),
   }),
   card({
     id: "pointer",

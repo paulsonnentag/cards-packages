@@ -31,7 +31,7 @@ export const cards = [
         "@tags": { [shapes.shape]: true, [tags.deck]: true },
         x: 0,
         y: 0,
-        children: [],
+        children: {},
       } satisfies Deck),
   }),
 ];
